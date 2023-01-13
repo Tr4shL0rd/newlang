@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from libs import strings
+from libs import func_helpers
 iota_counter = 0
 def iota(reset=False):
     global iota_counter
@@ -39,8 +41,8 @@ def op_def(name,body):
 def op_call(name):
     return (OP_CALL, name)
 
-functions = {} # Stores functions
 
+functions = {} # Stores functions
 def simulate_program(program):
     stack = [] 
     variables = {} # stores variables
@@ -66,16 +68,17 @@ def simulate_program(program):
         elif op[0] == OP_GET:
             stack.append(variables.get(op[1], None))  # get the value of the variable, and push None if the variable is not defined
         elif op[0] == OP_DEF:
+            print("hit def")
             # Store the function in the dictionary
             functions[op[1]] = op[2]
         elif op[0] == OP_CALL:
+            print("hit call")
             # Get the function from the dictionary and execute it
             func = functions.get(op[1], None)
             if func is not None:
-                simulate_program(func)
+                simulate_program(func)  # execute the function
         else:
             assert False, "unreachable"
-
 def compileProgram(program):
     assert False, "compileProgram not implemented"
 
@@ -86,11 +89,11 @@ program = []
 with open("prog.nl", "r") as f:
     lines = [line.strip() for line in open("prog.nl", "r")]
     for line in lines:
-        if line.startswith("//"):
+        if strings.is_comment(line):#line.startswith("//"):
             continue # skips line
         if "push" in line:
             try:
-                val = int(line.split("(")[1].split(")")[0])
+                val = int(func_helpers.get_value(line))#int(line.split("(")[1].split(")")[0])
                 program.append(op_push(val))
             except ValueError:
                 print("Error: Invalid value in input file")
@@ -101,25 +104,53 @@ with open("prog.nl", "r") as f:
         elif "dump" in line:
             program.append(op_dump())
         elif "print" in line:
-            val = line.split("(")[1].split(")")[0]
+            val = func_helpers.get_value(line)#line.split("(")[1].split(")")[0]
             program.append(op_print(val))
         elif "set" in line:
-            val = line.split("(")[1].split(")")[0]
+            val = func_helpers.get_value(line)#line.split("(")[1].split(")")[0]
             var, value = val.split(",")
             program.append(op_set(var, int(value)))
         elif "get" in line:
-            var = line.split("(")[1].split(")")[0]
+            var = func_helpers.get_value(line)#line.split("(")[1].split(")")[0]
             program.append(op_get(var))
         elif "def" in line:
             val = line.split("(")[1].split(")")[0]
             name, body = val.split(" ")
             body = body.split(",")
-            body = [eval(i.strip()) for i in body]
-            print(body)
-            program.append(op_def(name, body))
+            function_body = []
+            for i in body:
+                if "push" in i:
+                    try:
+                        val = int(i.split("(")[1].split(")")[0])
+                        function_body.append(op_push(val))
+                    except ValueError:
+                        print("Error: Invalid value in input file")
+                elif "plus" in i:
+                    function_body.append(op_plus())
+                elif "minus" in i:
+                    function_body.append(op_minus())
+                elif "dump" in i:
+                    function_body.append(op_dump())
+                elif "print" in i:
+                    val = i.split("(")[1].split(")")[0]
+                    function_body.append(op_print(val))
+                elif "set" in i:
+                    val = i.split("(")[1].split(")")[0]
+                    var, value = val.split(",")
+                    function_body.append(op_set(var, int(value)))
+                elif "get" in i:
+                    var = i.split("(")[1].split(")")[0]
+                    function_body.append(op_get(var))
+            program.append(op_def(name, function_body))
         elif "call" in line:
+            print("call")
             val = line.split("(")[1].split(")")[0]
-            program.append(op_call(val))
+            if val in functions:
+                func = functions.get(val, None)
+                simulate_program(func)
+            else:
+                print(f"Error: Function {val} not defined")
+
 
     #program.append(lines)
 #print("Current:",program)
