@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from libs import strings
 from libs import func_helpers
+import sys
 iota_counter = 0
 def iota(reset=False):
     global iota_counter
@@ -85,8 +86,11 @@ def compileProgram(program):
 
 #QProgram = [push(34),push(35),plus(),dump(),]
 program = []
-
-with open("prog.nl", "r") as f:
+try:
+    prog_name = sys.argv[1]
+except IndexError:
+    prog_name = "prog.nl"
+with open(prog_name, "r") as f:
     lines = [line.strip() for line in open("prog.nl", "r")]
     for line in lines:
         if strings.is_comment(line):#line.startswith("//"):
