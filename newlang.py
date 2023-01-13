@@ -16,6 +16,8 @@ OP_PRINT=iota()    # prints
 OP_DUMP=iota()     # dumps stack
 OP_SET=iota()      # Sets var
 OP_GET=iota()      # Gets var
+OP_DEF=iota()      # Sets function
+OP_CALL=iota()     # Gets function
 COUNT_OPS=iota()   # op count
 
 def op_push(x):
@@ -32,6 +34,12 @@ def op_set(var,value):
     return (OP_SET, var, value)
 def op_get(var):
     return (OP_GET, var)
+def op_def(name,body):
+    return (OP_DEF, name, body)
+def op_call(name):
+    return (OP_CALL, name)
+
+functions = {} # Stores functions
 
 def simulate_program(program):
     stack = [] 
@@ -57,6 +65,14 @@ def simulate_program(program):
             variables[op[1]] = op[2]
         elif op[0] == OP_GET:
             stack.append(variables.get(op[1], None))  # get the value of the variable, and push None if the variable is not defined
+        elif op[0] == OP_DEF:
+            # Store the function in the dictionary
+            functions[op[1]] = op[2]
+        elif op[0] == OP_CALL:
+            # Get the function from the dictionary and execute it
+            func = functions.get(op[1], None)
+            if func is not None:
+                simulate_program(func)
         else:
             assert False, "unreachable"
 
@@ -90,11 +106,20 @@ with open("prog.nl", "r") as f:
         elif "set" in line:
             val = line.split("(")[1].split(")")[0]
             var, value = val.split(",")
-            #print(var)
             program.append(op_set(var, int(value)))
         elif "get" in line:
             var = line.split("(")[1].split(")")[0]
             program.append(op_get(var))
+        elif "def" in line:
+            val = line.split("(")[1].split(")")[0]
+            name, body = val.split(" ")
+            body = body.split(",")
+            body = [eval(i.strip()) for i in body]
+            print(body)
+            program.append(op_def(name, body))
+        elif "call" in line:
+            val = line.split("(")[1].split(")")[0]
+            program.append(op_call(val))
 
     #program.append(lines)
 #print("Current:",program)
