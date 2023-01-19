@@ -12,7 +12,7 @@ class NL_FunctionNotFound(Exception):
         #__message = f"Function \"{function_name}\" was not found "
         __message = f"\"{function_name}\" was called but not found.  FILE {file_name}:{line_number}"
         super().__init__(__message)
-
+        
 class NL_InvalidLine(Exception):
     """
     Raised when a function isn't found
