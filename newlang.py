@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
+import sys
+
 from libs import strings
 from libs import func_helpers
-import sys
+from libs import file_handling
+
+from libs.newLang_exceptions import *
+
 iota_counter = 0
 def iota(reset=False):
     global iota_counter
@@ -69,9 +74,9 @@ def simulate_program(program):
         elif op[0] == OP_GET:
             stack.append(variables.get(op[1], None))  # get the value of the variable, and push None if the variable is not defined
         elif op[0] == OP_DEF:
-            print("hit def")
             # Store the function in the dictionary
             functions[op[1]] = op[2]
+            print(functions)
         elif op[0] == OP_CALL:
             print("hit call")
             # Get the function from the dictionary and execute it
@@ -90,17 +95,24 @@ try:
     prog_name = sys.argv[1]
 except IndexError:
     prog_name = "prog.nl"
+if not file_handling.is_real_file(prog_name):
+    print(f"file \"{prog_name}\" or \"{prog_name}.nl\" was not  found")
+    exit()
 with open(prog_name, "r") as f:
+
     lines = [line.strip() for line in open("prog.nl", "r")]
+    line_number = 1
     for line in lines:
+        line_number+=1
         if strings.is_comment(line):#line.startswith("//"):
             continue # skips line
         if "push" in line:
             try:
-                val = int(func_helpers.get_value(line))#int(line.split("(")[1].split(")")[0])
+                val = int(func_helpers.get_value(line), base=10)#int(line.split("(")[1].split(")")[0])
                 program.append(op_push(val))
             except ValueError:
-                print("Error: Invalid value in input file")
+                raise NL_InvalidLine(line=line, line_number=line_number, file_name=f.name)
+                #print("Error: Invalid value in input file ")
         elif "plus" in line:
             program.append(op_plus())
         elif "minus" in line:
@@ -117,46 +129,27 @@ with open(prog_name, "r") as f:
         elif "get" in line:
             var = func_helpers.get_value(line)#line.split("(")[1].split(")")[0]
             program.append(op_get(var))
-        elif "def" in line:
+        if "def" in line:#line.startswith("def"):
             val = line.split("(")[1].split(")")[0]
-            name, body = val.split(" ")
-            body = body.split(",")
-            function_body = []
-            for i in body:
-                if "push" in i:
-                    try:
-                        val = int(i.split("(")[1].split(")")[0])
-                        function_body.append(op_push(val))
-                    except ValueError:
-                        print("Error: Invalid value in input file")
-                elif "plus" in i:
-                    function_body.append(op_plus())
-                elif "minus" in i:
-                    function_body.append(op_minus())
-                elif "dump" in i:
-                    function_body.append(op_dump())
-                elif "print" in i:
-                    val = i.split("(")[1].split(")")[0]
-                    function_body.append(op_print(val))
-                elif "set" in i:
-                    val = i.split("(")[1].split(")")[0]
-                    var, value = val.split(",")
-                    function_body.append(op_set(var, int(value)))
-                elif "get" in i:
-                    var = i.split("(")[1].split(")")[0]
-                    function_body.append(op_get(var))
-            program.append(op_def(name, function_body))
+            body = line.split(", ",1)[1:]
+            name = val.split(",",1)[0]
+            #body = [eval(i.strip()[:-1]) for i in body]
+            body = [i.strip()[:-1] for i in body]
+            program.append(op_def(name, body))
         elif "call" in line:
-            print("call")
             val = line.split("(")[1].split(")")[0]
             if val in functions:
                 func = functions.get(val, None)
                 simulate_program(func)
             else:
-                print(f"Error: Function {val} not defined")
+                raise NL_FunctionNotFound(function_name=val,file_name=f.name, line_number=line_number)
+                #print(f"Error: Function {val} not defined")
 
 
     #program.append(lines)
 #print("Current:",program)
 #print("Target: ",QProgram)
-simulate_program(program)
+try:    
+    simulate_program(program)
+except NL_FunctionNotFound as e:
+    print(f"Function not found\n{e}")
