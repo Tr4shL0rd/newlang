@@ -83,16 +83,15 @@ def simulate_program(program):
         elif op[0] == OP_CALL:
             # Get the function from the dictionary and execute it   
             func = functions.get(op[1], None)
+            print(func)
             if func is not None:
                 simulate_program(func)  # execute the function
         else:
             assert False, "unreachable"
-def compileProgram(program):
-    assert False, "compileProgram not implemented"
 
 
 program = []
-try:# REMOVE LINE PAST HERE ->
+try:#REMOVE LINE PAST HERE ->
     prog_name = sys.argv[1] if sys.argv[1] != "debug" else "prog.nl"
 except IndexError:
     prog_name = "prog.nl"
@@ -100,9 +99,9 @@ if not file_handling.is_real_file(prog_name):
     print(f"file \"{prog_name}\" or \"{prog_name}.nl\" was not  found")
     exit()
 with open(prog_name, "r") as f:
+    line_number = 0
     functions = {} # Stores functions
     lines = [line.strip() for line in open("prog.nl", "r")]
-    line_number = 0
     for line in lines:
         line_number+=1
         if strings.is_comment(line):#line.startswith("//"):
@@ -137,13 +136,13 @@ with open(prog_name, "r") as f:
             functions[name] = body[0]
             program.pop(0)
             program.append(op_def(name, functions[name]))
-
         if "call" in line:
             val = line.split("(")[1].split(")")[0].split(", ")[0]
+            #print(functions)
             if val in functions:
                 func = functions.get(val, None)
-                print(func)
-                simulate_program(func)
+                eval(func)# type: ignore                
+                #simulate_program(func)
             else:
                 raise NL_FunctionNotFound(function_name=val,file_name=f.name, line_number=line_number)
 
@@ -151,8 +150,8 @@ with open(prog_name, "r") as f:
     #program.append(lines)
 
 #print("Current:",program)
-#print("Target: ",QProgram)
-try:    
+#print("Target: ",QProgram)]
+try:
     simulate_program(program)
 except NL_FunctionNotFound as e:
     print(f"Function not found\n{e}")
